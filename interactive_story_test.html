@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Интерактивная страница</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --panel-bg: rgba(15, 10, 10, 0.82);
+      --panel-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      --text-color: #f5ead7;
+      --control-bg: rgba(20, 14, 12, 0.86);
+      --control-border: rgba(245, 234, 215, 0.18);
+      --control-text: #f5ead7;
+      --screen-padding: 24px;
+      --content-width: min(400px, calc(100vw - 48px));
+      --bottom-controls-gap: 12px;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, serif;
+      color: var(--text-color);
+      background-color: #111;
+      overflow: hidden;
+    }
+
+    .page {
+      position: relative;
+      min-height: 100vh;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: background-image 0.5s ease-in-out;
+    }
+
+    .page::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: transparent;
+      pointer-events: none;
+    }
+
+    .text-box {
+      position: absolute;
+      z-index: 2;
+      width: var(--content-width);
+      max-width: calc(100vw - 48px);
+      padding: 24px;
+      border-radius: 18px;
+      background: var(--panel-bg);
+      box-shadow: var(--panel-shadow);
+      text-align: justify;
+    }
+
+    .text-box.hidden {
+      display: none;
+    }
+
+    .text-box.top-left {
+      top: var(--screen-padding);
+      left: var(--screen-padding);
+    }
+
+    .text-box.top-right {
+      top: var(--screen-padding);
+      right: var(--screen-padding);
+    }
+
+    .text-box.bottom-left {
+      bottom: 110px;
+      left: var(--screen-padding);
+    }
+
+    .text-box.bottom-right {
+      bottom: 110px;
+      right: var(--screen-padding);
+    }
+
+    .text-box.left-side {
+      top: 50%;
+      left: var(--screen-padding);
+      transform: translateY(-50%);
+    }
+
+    .text-box.right-side {
+      top: 50%;
+      right: var(--screen-padding);
+      transform: translateY(-50%);
+    }
+
+    .text-box.middle-left {
+      top: 50%;
+      left: var(--screen-padding);
+      transform: translateY(-50%);
+    }
+
+    .text-box.middle-right {
+      top: 50%;
+      right: var(--screen-padding);
+      transform: translateY(-50%);
+    }
+
+    .text-box.bottom-bar {
+      left: var(--screen-padding);
+      right: var(--screen-padding);
+      bottom: 110px;
+      width: auto;
+      max-width: none;
+    }
+
+    .text-box.center {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .text-box.fade-in {
+      animation: fadeInText 0.25s ease;
+    }
+
+    @keyframes fadeInText {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    #storyText {
+      font-size: clamp(12px, 1.2vw, 16px);
+      line-height: 1.25;
+      white-space: pre-line;
+    }
+	
+	.music-volume {
+	  position: absolute;
+	  left: 50%;
+	  bottom: 24px;
+	  transform: translateX(-50%);
+	  z-index: 4;
+	  display: flex;
+	  align-items: center;
+	  gap: 10px;
+	  padding: 10px 14px;
+	  border-radius: 14px;
+	  background: rgba(20, 14, 12, 0.78);
+	  border: 1px solid rgba(245, 234, 215, 0.18);
+	  color: #f5ead7;
+	  pointer-events: none;
+	  opacity: 0;
+	  transition: opacity 0.35s ease;
+	}
+	
+	.music-volume.enabled {
+	  pointer-events: auto;
+	  opacity: 0.1;
+	}
+
+	.music-volume.enabled:hover {
+	  opacity: 1;
+	}
+
+	.music-volume label {
+		font-size: 14px;
+		line-height: 1;
+		white-space: nowrap;
+	}
+
+	.music-volume input[type="range"] {
+		width: 120px;
+		cursor: pointer;
+	}
+
+    .controls {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .control-btn {
+      border: 1px solid var(--control-border);
+      border-radius: 14px;
+      background: var(--control-bg);
+      color: var(--control-text);
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 64px;
+      min-height: 56px;
+      padding: 0 18px;
+      font-size: 18px;
+      font-family: inherit;
+      pointer-events: auto;
+    }
+
+    .control-btn:hover {
+      opacity: 0.96;
+      background: rgba(35, 26, 22, 0.92);
+    }
+
+    .control-btn:active {
+      opacity: 0.9;
+    }
+
+    .control-btn.hidden {
+      display: none;
+    }
+
+    .arrow-btn {
+      position: absolute;
+      bottom: 24px;
+      width: 64px;
+      padding: 0;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    #prevButton {
+      left: 24px;
+    }
+
+    #nextButton,
+    #restartButton {
+      right: 24px;
+    }
+
+    .restart-btn,
+    .start-btn {
+		position: absolute;
+		bottom: 94px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 180px;
+		min-width: 180px;
+		height: 56px;
+		padding: 0 18px;
+	}
+
+    @media (max-width: 768px) {
+      .text-box,
+      .text-box.top-left,
+      .text-box.top-right,
+      .text-box.bottom-left,
+      .text-box.bottom-right,
+      .text-box.left-side,
+      .text-box.right-side,
+      .text-box.middle-left,
+      .text-box.middle-right,
+      .text-box.bottom-bar,
+      .text-box.center {
+        top: auto;
+        right: var(--screen-padding);
+        bottom: 100px;
+        left: var(--screen-padding);
+        width: auto;
+        max-width: none;
+        transform: none;
+      }
+
+      .arrow-btn {
+        width: 56px;
+        min-width: 56px;
+      }
+
+      #prevButton {
+        left: 16px;
+      }
+
+      #nextButton,
+      #restartButton {
+        right: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page" id="page">
+    <div class="text-box bottom-left" id="textBox">
+      <div id="storyText"></div>
+    </div>
+
+    <div class="controls" id="controls">
+      <button class="control-btn start-btn" id="startButton" type="button">Начать</button>
+      <button class="control-btn arrow-btn hidden" id="prevButton" type="button" aria-label="Предыдущий фрейм">◀</button>
+      <button class="control-btn arrow-btn hidden" id="nextButton" type="button" aria-label="Следующий фрейм">▶</button>
+      <button class="control-btn restart-btn hidden" id="restartButton" type="button">Начать заново</button>
+    </div>
+  </div>
+
+  <audio id="bgMusic" loop>
+    <source src="music.mp4" type="audio/mpeg" />
+    Ваш браузер не поддерживает аудио.
+  </audio>
+  
+  <div class="music-volume" id="musicVolumeControl">
+  <label for="musicVolumeSlider">Музыка</label>
+  <input
+    type="range"
+    id="musicVolumeSlider"
+    min="0"
+    max="1"
+    step="0.01"
+    value="1"
+  />
+</div>
+
+  <audio id="frameSoundPrev" preload="auto">
+    <source src="prev-sound.mp3" type="audio/mpeg" />
+  </audio>
+
+  <audio id="frameSoundNext" preload="auto">
+    <source src="next-sound.mp3" type="audio/mpeg" />
+  </audio>
+
+  <audio id="frameSoundStart" preload="auto">
+    <source src="start-sound.mp3" type="audio/mpeg" />
+  </audio>
+
+  <audio id="frameSoundRestart" preload="auto">
+    <source src="restart-sound.mp3" type="audio/mpeg" />
+  </audio>
+
+  <script>
+    const allowedPositions = [
+      'top-right',
+      'top-left',
+      'bottom-right',
+      'bottom-left',
+      'right-side',
+      'left-side',
+      'middle-right',
+      'middle-left',
+      'bottom-bar',
+      'center'
+    ];
+
+    const scenes = [
+      {
+        background: "url('bg0.png')",
+        showTextBox: false
+      },
+	  {
+        text: `Битва за Чернолесье должна была стать очищением… 
+		Но обернулась катастрофой.`,
+        background: "url('bg0.png')",
+        textPosition: 'center',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg1.png')",
+        showTextBox: false,
+		customSound: 'bg1.mp3'
+      },
+      {
+        text: `Войска Серебряного Союза шли в Чернолесье с молитвами на устах и верой в победу правого дела — победу живых. Но отправившиеся в бой не вернулись: ритуал был прерван, а Обелиск уничтожен, однако его пьедестал стал для многих погребальной плитой. Разлетевшись на куски, он явил зияющую бездну, и лесные просторы Чернолесья объяла тьма, пожравшая ряды как союзников, так и Проклятых.`,
+        background: "url('bg1.png')",
+        textPosition: 'middle-left',
+        showTextBox: true
+      },
+	  {
+        text: `Окутавший их мрак явил выжившим видение: среди тенистых сводов к ним обратилась ангельская сущность, возмущённая их присутствием прежде начертанного часа. Однако зловещий глас из глубин прервал пребывание невольных вторженцев в древних залах, пробудив их на дне озера Мерельдар. Многие, кто очнулся, так и не смогли всплыть на поверхность. Остальные же вскоре выяснили, что наваждение, казавшееся мгновением, на самом деле продлилось неделю. Неделю, за которую в Иствальде многое изменилось...`,
+        background: "url('bg1.png')",
+        textPosition: 'middle-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg2.png')",
+        showTextBox: false,
+		customSound: 'bg2.mp3'
+      },
+	  {
+        text: `Пока Союз истекал кровью на передовой, война настигла тех, кто её не ждал. Нортдейл стоял далеко в тылу — слишком далеко, чтобы бояться. Когда соратники из Союза пропали в гуще мрака близ Чернолесья, однажды на закате жители городишка увидели всадников в красных доспехах. Словно выкованные из заката, без гербов и без горнов, они пришли как предвестие гибели. Город горел — его разрушали медленно, как оскверняют святыню.`,
+        background: "url('bg2.png')",
+        textPosition: 'bottom-left',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg3.png')",
+        showTextBox: false,
+		customSound: 'bg3.mp3'
+      },
+	  {
+        text: `Жрицу-старейшину Амариэль казнили на площади, у её же алтаря. Выжившие говорят: она не кричала и не молила о пощаде — только пыталась завершить молитву, пока ей позволяли дышать. Её голова стала трофеем кровавых всадников, которые покинули руины Нортдейла на рассвете…`,
+        background: "url('bg3.png')",
+        textPosition: 'top-left',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg4.png')",
+        showTextBox: false,
+		customSound: 'bg4.mp3'
+      },
+	  {
+        text: `Когда нежить пришла к сторожке Кель’Литиен, перевал с трудом выстоял. К рассвету мёртвые вновь стали землёй, и победа должна была вернуть покой… вместо этого она породила обвинения и склоки. Воспользовавшись случаем, лидеры следопытов Литиена, давно точившие зуб на жрицу Аврору, супругу исчезнувшего лорда-следопыта Рентара Ястребиное Копьё, обрушили на неё всю накопившуюся злобу.`,
+        background: "url('bg4.png')",
+        textPosition: 'top-left',
+        showTextBox: true
+      },
+	  {
+        text: `Её обвиняли в слабости, в слепоте… а некоторые, шёпотом, — в предательстве Союза. Так её заковали в серебряные узы. Казалось, в сторожке вновь наступил мир. Но судьба распорядилась иначе: тем же вечером небо над сторожкой неестественно потемнело, будто звёзды отступили, уступая место чему-то ужасающему. Земля разверзлась, и из трещин поднялись существа, которых не знали даже старшие песни.`,
+        background: "url('bg4.png')",
+        textPosition: 'bottom-left',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg5.png')",
+        showTextBox: false,
+		customSound: 'bg5.mp3'
+      },
+	  {
+        text: `Реннала Ястребиное Копьё вернулась. Она не просила впустить её в отчий дом — она решила вернуть его силой. Следопыты сражались до последнего: командиры Эйрис и Каледра пали жертвами извращённой магии, защищая тех, кого ещё можно было спасти. Аврора была освобождена в огне и криках. А лазурные пруды маны, обагрённые кровью кель’дорай, запомнили иное: магию, не принадлежащую ни звёздам, ни земле.`,
+        background: "url('bg5.png')",
+        textPosition: 'top-left',
+        showTextBox: true
+	  },
+	  {
+        text: `Эонис, сестра Аэрлана, встала на пути Ренналы. Сказания не знали заклятия, которое она произнесла; его не знали и духи… Но оно сработало. Разлом закрылся, захлебнувшись сам собой, а Реннала была изгнана за пределы мира. Эонис заплатила большую цену: когда выжившие добрались до места их поединка, её прах уже развеяли сухие ветра Иствальда.`,
+        background: "url('bg5.png')",
+        textPosition: 'top-right',
+        showTextBox: true
+	  },
+	  {
+        background: "url('bg6.png')",
+        showTextBox: false,
+		customSound: 'bg6.mp3'
+      },
+	  {
+        text: `Длань Тира выстояла. Несмотря на все невзгоды, Алый Орден под предводительством верховного генерала Аббендиса смог отбросить Плеть от врат священного града и гнал её до самого Перекрёстка Корина. Однако триумф вновь был вырван из его крепких рук.`,
+        background: "url('bg6.png')",
+        textPosition: 'bottom-left',
+        showTextBox: true
+      },
+	  {
+        text: `Огромная разрушительная мощь вырвалась из-под земли, уничтожила город и похоронила в разломах множество крестоносцев и культистов. Аббендис трезво оценил свои шансы и, не желая терять людей, принял решение отступить.`,
+        background: "url('bg6.png')",
+        textPosition: 'bottom-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg7.png')",
+        showTextBox: false,
+		customSound: 'bg7.mp3'
+      },
+	  {
+        text: `Но провал похода обернулся охотой на сторонников прежнего режима и всенародным ликованием. Лояльные воеводы и священники провозгласили Аббендиса самодержцем Лордерона, а под его стяги стягивалось всё больше сил, жаждущих присягнуть новому владыке Восточного Лордерона. Однако не все участники Похода склонились перед деспотом из Авалона. Многие бежали на Запад в поисках укрытия от кровавой расправы, некоторые же нашли приют в Союзе.`,
+        background: "url('bg7.png')",
+        textPosition: 'bottom-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg8.png')",
+        showTextBox: false,
+		customSound: 'bg8.mp3'
+      },
+	  {
+        text: `Серебряный Союз, понёсший немыслимые потери, оказался в кризисе, и его члены косо смотрели друг на друга: разорённый Нортдейл требовал от союзников исполнить взятые на себя обязательства и оказать помощь, которая, однако, в тот момент никому не была по плечу; пришедшие к власти следопыты в Кель’Литиене стали продвигать отчуждённую и изоляционистскую политику, постепенно отстраняясь от прежних соратников; сам Рассвет столкнулся с внутренними конфликтами, которые препятствовали решению более глобальных проблем.`,
+        background: "url('bg8.png')",
+        textPosition: 'middle-left',
+        showTextBox: true
+      },
+	  {
+        text: `Лорд-командир Артур де Монтье вернулся в Часовню с разодранным до неузнаваемости знаменем Рассвета и горсткой выживших. Он отказался от новых походов, приказал укрепить оборону и хранить каждый клинок, будто это последний клинок в мире. Бремя лидерства оказалось тяжёлой ношей, к которой молодой лорд-командир отнёсся со всей возможной ответственностью: пропуская приёмы пищи и жертвуя сном, Артур корпел над разрешением дрязг, старался пресекать попытки разжечь новые, а также лично контролировал исполнение своих указаний.`,
+        background: "url('bg8.png')",
+        textPosition: 'middle-left',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg9.png')",
+        showTextBox: false,
+		customSound: 'bg9.mp3'
+      },
+	  {
+        text: `И всё же среди тягот долга и лишений Артур не забыл о той, чей аромат локонов вдохновлял его на подвиги, — своей прекрасной, но тронутой проклятием невесте Лилиан. О тихой свадебной церемонии, которую для влюблённых провёл Хильдар, мало кто знал, но те, кто видел их сияющие лица в тот день, шептались затем, что никогда прежде не видели их настолько счастливыми. Лилиан редко покидала общество своего супруга и весьма успешно служила ему опорой, используя обширный опыт из прошлой жизни — жизни убийцы и шпиона Алого Ордена.`,
+        background: "url('bg9.png')",
+        textPosition: 'top-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg10.png')",
+        showTextBox: false,
+		customSound: 'bg10.mp3'
+      },
+	  {
+        text: `Хильдар возложил на себя ответственное бремя советника Артура, своего старого друга и товарища. Он первым поддержал решения лорда-командира, денно и нощно занимаясь реализацией его воли. Однако его душу тяготила тайна, открытая ему Девой Света Саргиль после гибели Доргара Камнелоба. Эхо души Доргара поведало, что танн Красных Пещер был его отцом, покинувшим Каз Модан много лет назад, когда Хильдар был совсем мал.`,
+        background: "url('bg10.png')",
+        textPosition: 'top-right',
+        showTextBox: true
+      },
+	  {
+        text: `К сожалению, Доргар не решился сказать своему сыну правду до битвы, которая стала для него последней, опасаясь непонимания наследника. Теперь же, когда клан Красных Пещер обезглавлен, перед Хильдаром стоит тяжёлый выбор: возложить на себя ответственность главы клана своего отца либо остаться советником лорда-командира.`,
+        background: "url('bg10.png')",
+        textPosition: 'top-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg11.png')",
+        showTextBox: false,
+		customSound: 'bg11.mp3'
+      },
+	  {
+        text: `Одна из последних клириков, дочь погибшего основателя Рассвета Реймонда Джорджа, леди Чистосердая, отстранилась от управления и принятия решений, сосредоточившись на поиске собственного пути, подготовке аколитов из числа братьев и сестёр, а также на совершенствовании владения мечом, уроки которого ей давала Бриджит, мятежная дочь верховного генерала Аббендиса.`,
+        background: "url('bg11.png')",
+        textPosition: 'top-right',
+        showTextBox: true
+      },
+	  {
+        text: `Изменница из Длани Тира стала второй советницей лорда-командира Серебряного Рассвета и встала на защиту Часовни Последней Надежды вместе с немногими лояльными ей крестоносцами, пережившими кровавую резню в Длани Тира и бойню в Чернолесье. За время тренировок девушки сильно сблизились, как и их последователи, не давая личным трагедиям затуманить разум и не позволяя жажде кровавого мщения возвыситься над трезвостью мысли.`,
+        background: "url('bg11.png')",
+        textPosition: 'top-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg12.png')",
+        showTextBox: false,
+		customSound: 'bg12.mp3'
+      },
+	  {
+        text: `Бэв Перенольд и её последователи продолжали сторониться своих соратников из Рассвета, однако остались верны Союзу и водрузили на себя часть задач по обороне южных владений Рассвета. Не смотря на недоверие и серьезную пропасть в видении мира между выжившими из горного Альтерака и защитниками умирающего Лордерона, принцесса-чародейка решила поддерживать Лорда-командира в его стремлениях, продолжая исследования природы Деметрии и подготовку к более серьезному участию в политической жизни региона.`,
+        background: "url('bg12.png')",
+        textPosition: 'bottom-right',
+        showTextBox: true
+      },
+	  {
+        text: `Однако, среди сторонников Лорда-командира были и те, кто не согласился с решениями новоизбранного лидера.`,
+        background: "url('bg0.png')",
+        textPosition: 'center',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg13.png')",
+        showTextBox: false,
+		customSound: 'bg13.mp3'
+      },
+	  {
+        text: `Грегор Грейстоун увёл остатки своих людей далеко на Запад с целью поиска союзников за пределами Лордерона. Он видел потенциал в таких силах, как Альянсы Штормграда и Терамора.`,
+        background: "url('bg13.png')",
+        textPosition: 'bottom-left',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg14.png')",
+        showTextBox: false,
+		customSound: 'bg14.mp3'
+      },
+	  {
+        text: `Череда предательств оставила неизгладимые шрамы на душах воителей Рассвета. Рыцарь-паладин Йегер Тиберон собрал самых ревностных из них и нарёк тех “Поборниками Стойкости”. Следуя примеру своего лидера, они заковали свои тела и души в сталь, считая, что милосердие и доверие нужно проявлять лишь к достойным.`,
+        background: "url('bg14.png')",
+        textPosition: 'bottom-left',
+        showTextBox: true
+      },
+	  {
+        text: `За “поборниками” последовал и восставший жрец-изгой, бывший алый каппелан, Рудольф Лебенфельс. Не смотря на слепую веру в западных лидеров Алого Ордена, он также был верен Тиберону и его идеалам, что славили “Господа”, особую интерпретацию Света. Он привнес идеи строжайшей иерархии и культа самосовершенствования.`,
+        background: "url('bg14.png')",
+        textPosition: 'bottom-left',
+        showTextBox: true
+      },
+	  {
+        text: `Вскоре Поборники отправились на запад к окраинам Чернолесья, где разбили лагерь. Руины города кишели темной силой, что сводила с ума тех, кто долго находился в её влиянии. Воители Света решили ограничились надзором и аккуратным изучением источника Зла, а также решительно препятствовали любому пересечению границ Чернолесья, не согласованных с ними.`,
+        background: "url('bg14.png')",
+        textPosition: 'bottom-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg15.png')",
+        showTextBox: false,
+		customSound: 'bg15.mp3'
+      },
+	  {
+        text: `Некогда беженцы из мёртвых земель, а впоследствии — последние из группы авантюристов, защищавших Литиен, Аэрлан и Кален прибыли в сторожку слишком поздно… Сражение с силами Тени было окончено, а умы и сердца жителей — искалечены. Следопыты, пришедшие к власти, не разделяли ни взглядов былых лидеров, ни идей Аэрлана о необходимости сражения за землю обетованную — Кель’Талас, к которой теперь почти все относились со скепсисом. Даже Кален, последний друг Аэрлана, не разделял этой мечты.`,
+        background: "url('bg15.png')",
+        textPosition: 'top-left',
+        showTextBox: true
+      },
+	  {
+        text: `Аэрлан принял это. Простившись с почившей сестрой, он собрал немногочисленных добровольцев и, заручившись поддержкой столь же немногочисленных единомышленников, отправился на север, через перевал, к вратам земель своих предков.`,
+        background: "url('bg15.png')",
+        textPosition: 'bottom-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg16.png')",
+        showTextBox: false,
+		customSound: 'bg16.mp3'
+      },
+	  {
+        text: `Боевой маг Кален и командир следопытов Киренна помогли многим эльфийским защитникам Часовни вернуться в Литиен через опасные северные леса Чумных Земель. Эльфийка решила остаться в сторожке, чтобы помогать лорду-командиру Рассвета поддерживать взаимоотношения со следопытами, а волшебник остался верен клятве, данной ещё Максвеллу Тироссу, и вернулся обратно в Часовню.`,
+        background: "url('bg16.png')",
+        textPosition: 'middle-right',
+        showTextBox: true
+      },
+	  {
+        text: `Как и для многих его соратников из Союза, прошедшие потрясения оставили болезненный отпечаток в душе мага-недоучки: отрешённость и безынициативность стали его постоянными спутниками, утяжеляя шаги днём и терзая совесть бессонными ночами.`,
+        background: "url('bg16.png')",
+        textPosition: 'middle-right',
+        showTextBox: true
+      },
+	  {
+        text: `Но на этом пути Кален никогда не был и не будет одинок. Эльфийская колдунья Таралис, спасённая им из жадных лап слепого правосудия, не забыла ни его доброты, ни заботы — девушка поддерживала его остроумной беседой и развеивала сияющей улыбкой даже темнейшие из его раздумий. Пожалуй, именно она вдохновляла Калена вставать по утрам и порой пропадать в чащах неподалёку в поисках цветов для своего пусть и крошечного, но такого тёплого лучика света.`,
+        background: "url('bg16.png')",
+        textPosition: 'middle-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg17.png')",
+        showTextBox: false,
+		customSound: 'bg17.mp3'
+      },
+	  {
+        text: `А Часовня, которая для выживших была лишь символом Последней Надежды, стала центром поселения, куда съезжались беженцы из Нортдейла, Кель’Литиена и Длани Тира. Те, кто искал справедливости, света или просто спокойной жизни. В первые месяцы небольшой городок очень быстро перерос в вольное поселение, возведённое вокруг древнего святилища, — знамение новой надежды.
+		
+		И было дано городу имя — Надежда Света.`,
+        background: "url('bg17.png')",
+        textPosition: 'top-left',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg18.png')",
+        showTextBox: false,
+		customSound: 'bg18.mp3'
+      },
+	  {
+        text: `Изначально созданное как отчаянная попытка защитить Серебряный Союз от поражения, Обсидиановое Око стало новой фигурой на игровой доске Чумных Земель. В его состав вошли служители Культа Тёмного Пламени и слуги дома Пламенного Листа, спасённые Тарецией и Саргиль, а также армия восставших воителей, служивших лорду Блэквуду ещё во времена его жизни архимагом. На первый взгляд столь необычный подход к выбору сторонников продолжал вызывать тихую ненависть в рядах союзников Ока и по сей день…`,
+        background: "url('bg18.png')",
+        textPosition: 'top-left',
+        showTextBox: true
+      },
+	  {
+        text: `После сражения за Чернолесье Око заняло Ядовитую поляну — возвышенность, где воители Рассвета ранее одолели Тенна Пламетворца, прежнего владыку Культа Тёмного Пламени, — и совсем скоро возвело на её вершине высокий башенный шпиль. Опираясь на помощь тех, кто ещё совсем недавно был сподвижником Тенна, Тареция смогла восстановить сеть заклятий, позволившую ей контролировать магические перемещения на дальние расстояния в регионе.`,
+        background: "url('bg18.png')",
+        textPosition: 'top-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg19.png')",
+        showTextBox: false,
+		customSound: 'bg19.mp3'
+      },
+	  {
+        text: `Пока одни были ведомы фанатичным рвением и слепой верой, другие — жаждой свободы и равенства. Такой была и Тареция Зверенхофф, одна из двух лидеров Ока. Благодаря чистому взору и горящему сердцу волшебница спасла от полного уничтожения остатки Культа Тёмного Пламени Тенна Пламетворца и Чёрного Войска лорда Блэквуда, возглавив их. Именно её требование равного отношения Союза к новым подчинённым — многим из которых, по мнению «живых», не полагалось даже права на существование — сильно отдалило её от прежних собратьев по Рассвету. Однако непонимание и враждебность со стороны бывших союзников она встретила не одна…`,
+        background: "url('bg19.png')",
+        textPosition: 'top-left',
+        showTextBox: true
+      },
+	  {
+        text: `Часть управленческих обязанностей Тареции взял на себя её супруг Николас, чтобы беременная жена как можно реже покидала Шпиль. Это дало ей достаточно времени, чтобы углубить изучение магических таинств и нераскрытых секретов Культа Тёмного Пламени. В процессе изысканий внимание волшебницы привлекли исследования и наработки по воссозданию «рыцарей смерти» времён Второй войны, которыми был увлечён бывший инквизитор. Ради этих, по мнению многих, неэтичных целей агентам Ока удалось добыть тела рыцарей и крестоносцев, погибших под Чернолесьем, несмотря на вооружённое столкновение с силами Рассвета под командованием Тиберона.`,
+        background: "url('bg19.png')",
+        textPosition: 'top-left',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg20.png')",
+        showTextBox: false,
+		customSound: 'bg20.mp3'
+      },
+	  {
+        text: `Проповедница Ока Саргиль Нориан, второй лидер Обсидианового Ока, проводила дни, осмысляя своё познание Света. Поборов призраков прошлого и тени сомнений, проповедница воссоединилась со своей возлюбленной Каталуной, подвергшейся ужасным экспериментам тузадинских культистов. Несмотря на то что девушка стала больше монстром, чем человеком, жрица не отвернулась от неё. Сквозь тень её израненной формы Саргиль видела её подлинную сущность. Проповеднице пришло просветление о падении лидеров Света: смертные души были окружены всевозможными искажениями изначальной философии Света и Пророчества Мерельдар, что приводило к смертям и кровной вражде.`,
+        background: "url('bg20.png')",
+        textPosition: 'top-left',
+        showTextBox: true
+      },
+	  {
+        text: `Проповедница призывала своих последователей очистить сердца и души, полностью отказаться от ненависти как чувства и мести как цели, предать забвению церковную роскошь, клерикальную иерархию и сакральность клятвоприношений. Она учила, что вера в Свет начинается с веры в людей, и что Свет — ничто без смертных, следующих его истинам. Неожиданно, но учения проповедницы нашли отклик в душах мрачных и отрешённых последователей Ока, которые приняли философский путь одной из своих лидеров, готовые защищать Чистейший Свет от нападок невежд и обезумевших фанатиков.`,
+        background: "url('bg20.png')",
+        textPosition: 'top-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg21.png')",
+        showTextBox: false,
+		customSound: 'bg21.mp3'
+      },
+	  {
+        text: `Джеана Граймс тяжело перенесла пережитое в Длани Тира. Столкнувшись с предательством лордеронцев из Алого Ордена, её сердце зачерствело. В ней не осталось трусости, за которую она себя корила, не осталось рассудительности, с которой её учили подходить к любому вопросу, не осталось и любви, которую она лишь недавно обрела и уже знала, кому готова даровать…`,
+        background: "url('bg21.png')",
+        textPosition: 'top-right',
+        showTextBox: true
+      },
+	  {
+        text: `Осталась только ненависть и неудержимая жажда разрушения и убийства. Жажда мести всему Алому Ордену и тем лордеронцам, что поддерживали изменников в красном. Кровавое возмездие, которое она будет нести этой земле и всем сторонникам алых воителей, пока её лезвие не срежет голову Аббендиса и не увидит ужас в его леденящем взгляде среди руин всего, что он воздвиг, и изуродованных тел тех, кого он любил.`,
+        background: "url('bg21.png')",
+        textPosition: 'top-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg22.png')",
+        showTextBox: false,
+		customSound: 'bg22.mp3'
+      },
+	  {
+        text: `Покинув Серебряный Рассвет, Ольрам Гиллем открыто занялся некромантией. Он не видел иной возможности противостоять Плети и обезумевшим фанатикам и не хотел тратить людские жизни попусту.`,
+        background: "url('bg22.png')",
+        textPosition: 'bottom-left',
+        showTextBox: true
+      },
+	  {
+        text: `В отличие от, по его мнению, слабого духом Обсидианового Ока, Ольрам не желал ограничиваться обозначенными полумерами, не хотел плясать под дудку слабовольных дураков, потерпевших поражение и прятавшихся по тёмным углам Надежды Света. Не обращая внимания на недовольство окружающих, он поднял крупную армию мертвецов из числа героев, погибших во время битвы при Чернолесье, и отправился далеко на запад, к стенам Стратхольма.`,
+        background: "url('bg22.png')",
+        textPosition: 'bottom-right',
+        showTextBox: true
+      },
+	  {
+        background: "url('bg23.png')",
+        showTextBox: false,
+		customSound: 'bg23.mp3'
+      },
+	  {
+        text: `В самом сердце Перекрёстка Коррина распахнулась зияющая бездна. Никто не смог совладать с потусторонними тварями, вырвавшимися из её нечестивых глубин. Порочные силы фанатиков и культистов отступили, отдавая разорённые земли силам подземного ужаса.`,
+        background: "url('bg23.png')",
+        textPosition: 'center',
+        showTextBox: true
+      },
+	  {
+        text: `Колоссальная сущность, явившая себя во время сражения за Перекрёсток Коррина, вернулась в глубины огромного раскола — раны земли, — отравляя разумы немногих смертных, приходивших к осквернённой почве. Столь могущественная и необузданная сила манила смертных, и многие участники войны в Чумных Землях увидели в этом возможность… `,
+        background: "url('bg23.png')",
+        textPosition: 'center',
+        showTextBox: true
+      },
+	  {
+		text: `Многие и без того обескровленные земли Иствальда под влиянием неведомой энергии начали превращаться в непредсказуемые пустоши, зачастую лишённые логики и смысла. Когда отсчёт до полуночи завершился, проклятая мгла нависла над Иствальдом. 
+		
+		Выстоят ли герои и смогут ли принести Рассвет сквозь темнейшую из ночей?`,
+        background: "url('bg23.png')",
+		textPosition: 'center',
+        showTextBox: true
+      }
+    ];
+
+    let currentScene = 0;
+    let hasStarted = false;
+
+    const page = document.getElementById('page');
+    const textBox = document.getElementById('textBox');
+    const storyText = document.getElementById('storyText');
+    const startButton = document.getElementById('startButton');
+    const prevButton = document.getElementById('prevButton');
+    const nextButton = document.getElementById('nextButton');
+    const restartButton = document.getElementById('restartButton');
+    const bgMusic = document.getElementById('bgMusic');
+	const musicVolumeSlider = document.getElementById('musicVolumeSlider');
+	const musicVolumeControl = document.getElementById('musicVolumeControl');
+    const frameSoundPrev = document.getElementById('frameSoundPrev');
+    const frameSoundNext = document.getElementById('frameSoundNext');
+    const frameSoundStart = document.getElementById('frameSoundStart');
+    const frameSoundRestart = document.getElementById('frameSoundRestart');
+    const customSceneSounds = new Map();
+
+    function getSafePosition(position) {
+      return allowedPositions.includes(position) ? position : 'bottom-left';
+    }
+
+    function resetPositionClasses() {
+      textBox.classList.remove(...allowedPositions);
+    }
+
+    function sceneHasText(scene) {
+      if (scene.showTextBox === false) {
+        return false;
+      }
+
+      return typeof scene.text === 'string' && scene.text.trim() !== '';
+    }
+
+    function updateTextBox(scene) {
+      const shouldShowText = sceneHasText(scene);
+
+      textBox.classList.remove('fade-in');
+
+      if (!shouldShowText) {
+        textBox.classList.add('hidden');
+        storyText.textContent = '';
+        resetPositionClasses();
+        textBox.classList.add('bottom-left');
+        return;
+      }
+
+      const safePosition = getSafePosition(scene.textPosition);
+      storyText.textContent = scene.text;
+      textBox.classList.remove('hidden');
+      resetPositionClasses();
+      textBox.classList.add(safePosition);
+
+      void textBox.offsetWidth;
+      textBox.classList.add('fade-in');
+    }
+
+    function updateControls() {
+      const isFirstScene = currentScene === 0;
+      const isLastScene = currentScene === scenes.length - 1;
+
+      startButton.classList.toggle('hidden', hasStarted);
+      prevButton.classList.toggle('hidden', !hasStarted || isFirstScene);
+      nextButton.classList.toggle('hidden', !hasStarted || isLastScene);
+      restartButton.classList.toggle('hidden', !hasStarted || !isLastScene);
+    }
+
+    function renderScene(index) {
+      const scene = scenes[index];
+      page.style.backgroundImage = scene.background;
+      updateTextBox(scene);
+      updateControls();
+    }
+
+    function playSound(audioElement) {
+      if (!audioElement) {
+        return;
+      }
+
+      audioElement.currentTime = 0;
+      audioElement.play().catch(() => {});
+    }
+	
+	function ensureMusicStarted() {
+	  if (!bgMusic) {
+		return;
+	  }
+
+	  if (bgMusic.paused) {
+		bgMusic.play().catch(() => {});
+	  }
+	}
+	
+	function setupMusicVolume() {
+		if (!bgMusic || !musicVolumeSlider) {
+		return;
+		}
+
+		bgMusic.volume = Number(musicVolumeSlider.value);
+
+		musicVolumeSlider.addEventListener('input', () => {
+		bgMusic.volume = Number(musicVolumeSlider.value);
+		});
+	}
+	
+	function enableMusicVolumeControl() {
+	  if (!musicVolumeControl) {
+		return;
+	  }
+
+	  musicVolumeControl.classList.add('enabled');
+	}
+	
+	
+
+    function getSceneCustomSound(scene) {
+      if (!scene || typeof scene.customSound !== 'string' || scene.customSound.trim() === '') {
+        return null;
+      }
+
+      if (!customSceneSounds.has(scene.customSound)) {
+        const audio = new Audio(scene.customSound);
+        audio.preload = 'auto';
+        customSceneSounds.set(scene.customSound, audio);
+      }
+
+      return customSceneSounds.get(scene.customSound);
+    }
+
+    function playSceneTransitionSound(scene, fallbackSound) {
+      const customSound = getSceneCustomSound(scene);
+      playSound(customSound || fallbackSound);
+    }
+
+    function goToScene(index, soundEffect = null) {
+	  if (index < 0 || index >= scenes.length) {
+		return;
+	  }
+
+	  currentScene = index;
+	  renderScene(currentScene);
+	  ensureMusicStarted();
+	  playSceneTransitionSound(scenes[currentScene], soundEffect);
+	}
+
+    function startStory() {
+      hasStarted = true;
+	  currentScene = 1; // переход ко второму фрейму
+	  renderScene(currentScene);
+	  ensureMusicStarted();
+	  enableMusicVolumeControl();
+	  playSceneTransitionSound(scenes[currentScene], frameSoundStart);
+	}
+
+    function restartStory() {
+      hasStarted = false;
+	  currentScene = 0;
+	  renderScene(currentScene);
+	  ensureMusicStarted();
+	  playSceneTransitionSound(scenes[currentScene], frameSoundRestart);
+	}
+
+    startButton.addEventListener('click', () => {
+      startStory();
+    });
+
+    prevButton.addEventListener('click', () => {
+      goToScene(currentScene - 1, frameSoundPrev);
+    });
+
+    nextButton.addEventListener('click', () => {
+      goToScene(currentScene + 1, frameSoundNext);
+    });
+
+    restartButton.addEventListener('click', () => {
+      restartStory();
+    });
+
+
+    function runSceneTests() {
+      console.assert(Array.isArray(scenes), 'scenes должен быть массивом');
+      console.assert(scenes.length > 0, 'Нужна хотя бы одна сцена');
+
+      scenes.forEach((scene, index) => {
+        console.assert(typeof scene.background === 'string', `Сцена ${index + 1}: background должен быть строкой`);
+        console.assert(
+          scene.text === undefined || typeof scene.text === 'string',
+          `Сцена ${index + 1}: text должен быть строкой или отсутствовать`
+        );
+        console.assert(
+          scene.textPosition === undefined || allowedPositions.includes(scene.textPosition),
+          `Сцена ${index + 1}: textPosition должен быть одним из допустимых значений`
+        );
+        console.assert(
+          scene.showTextBox === undefined || typeof scene.showTextBox === 'boolean',
+          `Сцена ${index + 1}: showTextBox должен быть boolean`
+        );
+        console.assert(
+          scene.customSound === undefined || typeof scene.customSound === 'string',
+          `Сцена ${index + 1}: customSound должен быть строкой`
+        );
+      });
+
+      console.assert(getSafePosition('unknown') === 'bottom-left', 'Неизвестная позиция должна заменяться на bottom-left');
+      console.assert(sceneHasText({ text: 'abc' }) === true, 'Сцена с текстом должна показывать текстовый блок');
+      console.assert(sceneHasText({ text: '', showTextBox: true }) === false, 'Пустой текст не должен показывать текстовый блок');
+      console.assert(sceneHasText({ text: 'abc', showTextBox: false }) === false, 'showTextBox=false должен скрывать текстовый блок');
+      console.assert(typeof playSound === 'function', 'Функция playSound должна существовать');
+      console.assert(typeof getSceneCustomSound === 'function', 'Функция getSceneCustomSound должна существовать');
+      console.assert(typeof playSceneTransitionSound === 'function', 'Функция playSceneTransitionSound должна существовать');
+      console.assert(getSceneCustomSound({ customSound: 'campfire.mp3' }) instanceof HTMLAudioElement, 'Кастомный звук сцены должен загружаться как HTMLAudioElement');
+      console.assert(getSceneCustomSound({}) === null, 'Если у сцены нет customSound, функция должна вернуть null');
+    }
+
+    runSceneTests();
+    renderScene(currentScene);
+	setupMusicVolume();
+  </script>
+</body>
+</html>
